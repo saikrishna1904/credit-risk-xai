@@ -1,0 +1,26 @@
+# Raw and cleaned LendingClub data (1-2 GB each, too big for GitHub)
+data/*
+!data/README.md
+
+# Trained models (.joblib files can be hundreds of MB)
+*.joblib
+*.pkl
+models/*
+!models/README.md
+
+# Large generated CSVs
+outputs/**/*.csv.gz
+outputs/**/rejected_scored_*.csv
+
+# Jupyter / Python clutter
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
