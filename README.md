@@ -50,7 +50,19 @@ In v2 the data is split first, training rows are encoded out-of-fold (a row neve
 
 ### Fairness
 
-Using the 0.8 disparate impact rule of thumb, the first version showed home ownership at 0.75 (renters flagged more often than mortgage holders) and employment length at 0.88. The fairness notebook had the same encoding issue, so these figures are being re-run with the fixed pipeline.
+Notebook 06 retrains the fixed pipeline (ROC AUC 0.727, matching notebook 03) and compares groups on the test set. Each group's average predicted default probability sits close to its actual default rate:
+
+| Group | Avg predicted probability | Actual default rate |
+|---|---|---|
+| Renters | 0.228 | 0.230 |
+| Own home | 0.204 | 0.204 |
+| Mortgage | 0.176 | 0.174 |
+| Employed 10+ years | 0.189 | 0.187 |
+| Employed < 1 year | 0.197 | 0.199 |
+
+So the model is well calibrated within these groups. Renters get higher scores because renters in the data default more often, not because the model is overshooting for them.
+
+The disparate impact ratios at the default 0.5 threshold look severe (home ownership 0.32, employment length 0.64, purpose 0.17), but at that threshold the model flags only about 3% of loans, so the ratio compares very small rates and moves a lot with a handful of loans. Comparing average scores instead gives ratios of 0.77 for home ownership and 0.94 for employment length. Home ownership sits just under the 0.8 rule of thumb, so it is the attribute I would monitor if this model were used for real decisions.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
