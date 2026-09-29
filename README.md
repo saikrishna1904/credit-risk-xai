@@ -30,19 +30,27 @@ Run them in order. Each one reads what the previous one saved.
 
 ## Results
 
-Test set of 40,000 loans (20% default rate):
+Test set of 40,000 loans (20% default rate), after fixing target leakage (see below):
 
 | Model | ROC AUC | PR AUC |
 |---|---|---|
-| Logistic Regression | 0.901 | 0.754 |
-| Random Forest | 0.895 | 0.688 |
-| **XGBoost** | **0.910** | **0.770** |
-| HistGradientBoosting | 0.909 | 0.768 |
-| Stacking Ensemble | 0.909 | 0.769 |
+| Logistic Regression | 0.716 | 0.378 |
+| Random Forest | 0.715 | 0.381 |
+| **XGBoost** | **0.727** | **0.399** |
+| HistGradientBoosting | 0.726 | 0.396 |
+| Stacking Ensemble | 0.725 | 0.397 |
 
-I chose XGBoost. At a tuned threshold of 0.475 it catches 50% of defaults with 82% precision and 87.8% overall accuracy.
+XGBoost came out best, and it is the model used for the SHAP and LIME explanations. A random guess would score 0.5 ROC AUC and 0.20 PR AUC (the default rate), so the model is picking up real signal, and these numbers are in the range usually reported for LendingClub when only application-time information is used.
 
-**Fairness.** Using the 0.8 disparate impact rule of thumb, home ownership came out at 0.75 (renters flagged more often than mortgage holders) and employment length at 0.88. Loan grade is at 0.09, which is expected because grade is itself a risk measure, but it shows how much the model leans on LendingClub's own grading.
+### Fixing target leakage
+
+My first version scored 0.91 ROC AUC, which looked too good. The cause was target encoding: I replaced high-cardinality columns such as `emp_title` with the average default rate for each category, but I computed those averages on the full dataset before the train/test split. Many job titles appear only once, so for those loans the encoded value was simply the loan's own outcome, and the test set leaked into the features.
+
+In v2 the data is split first, training rows are encoded out-of-fold (a row never sees its own label), test rows use averages learned from training data only, and rare categories are smoothed towards the overall mean. Optuna now tunes hyperparameters on a validation set carved out of the training data, so the test set is only used once at the end. ROC AUC dropped from 0.91 to 0.73, which is the honest number.
+
+### Fairness
+
+Using the 0.8 disparate impact rule of thumb, the first version showed home ownership at 0.75 (renters flagged more often than mortgage holders) and employment length at 0.88. The fairness notebook had the same encoding issue, so these figures are being re-run with the fixed pipeline.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
