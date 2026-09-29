@@ -1,8 +1,8 @@
 {
   "model_name": "XGBoost",
-  "model_path": "D:\\credit-risk-xai\\credit-risk-xai\\scripts\\notebook3_outputs\\final_model_xgb.joblib",
-  "chosen_threshold": 0.21000000000000002,
-  "brier_score": 0.14230717610750707,
+  "model_path": "c:\\Users\\sai krishna\\OneDrive\\Desktop\\credit-risk-xai\\credit-risk-xai\\outputs\\notebook3_outputs\\final_model_xgb.joblib",
+  "chosen_threshold": 0.22,
+  "brier_score": 0.14233572047502144,
   "risk_band_cutoffs": {
     "low_cutoff": 0.1,
     "high_cutoff": 0.4
