@@ -28,6 +28,7 @@ The raw files are too large for GitHub. See [`data/README.md`](data/README.md) t
 | [`08_monotonic_constraints`](notebooks/08_monotonic_constraints.ipynb) | Retrains XGBoost with monotonic constraints and checks that risk always moves in a defensible direction |
 | [`09_out_of_time_drift`](notebooks/09_out_of_time_drift.ipynb) | Trains on 2007–2015, tests on 2016, 2017 and 2018 separately, and measures drift with PSI |
 | [`10_counterfactuals`](notebooks/10_counterfactuals.ipynb) | Finds the smallest realistic changes that would get a declined applicant approved |
+| [`11_reject_inference`](notebooks/11_reject_inference.ipynb) | Uses rejected applications to correct for the model only ever seeing approved loans |
 
 Run them in order. Each one reads what the previous one saved.
 
@@ -142,6 +143,36 @@ Across 500 declined applicants:
 | Solutions that pay down cards (typical cut 10%) | 16% |
 
 The other 44% were too far above the cut-off for changes of this size, which is also useful to tell a customer honestly. These suggestions come from the model, not a guarantee of approval, and the actions are treated separately (for example, borrowing less would also slightly lower debt-to-income in reality, which the search does not model).
+
+### Reject inference
+
+Every model above learned only from loans LendingClub approved, so it has never seen how the people it turned away would have behaved. In notebook 11 I used a sample of the 27M rejected applications to test how much that matters. The rejected file only shares four columns with the accepted file, so this part uses a smaller model built on those (which is why its ROC AUC is 0.64 rather than 0.73):
+
+| Feature (median) | Accepted | Rejected |
+|---|---|---|
+| Credit score | 690 | 637 |
+| Debt-to-income | 17.6% | 19.9% |
+| Employment length (years) | 6 | 0 |
+| Loan amount | $12,000 | $10,000 |
+
+I compared a baseline model trained on accepted loans only with **fuzzy augmentation**, where each rejected applicant is added to training twice (as a default and as repaid), weighted by their estimated default probability. Rejected applicants are usually riskier than an accepted-only model predicts, so I also tested inflating their default odds by 1.5x and 2x. Those factors are assumptions, so I report all of them rather than picking one:
+
+| Model | Accepted test ROC AUC | Avg risk given to rejected applicants | Rejected applicants it would approve* |
+|---|---|---|---|
+| Baseline (accepted only) | 0.640 | 27.1% | 55.8% |
+| Fuzzy augmentation (x1) | 0.640 | 27.2% | 55.6% |
+| Fuzzy augmentation (x1.5) | 0.638 | 34.1% | 37.5% |
+| Fuzzy augmentation (x2) | 0.636 | 39.6% | 20.7% |
+
+*Using a cut-off that declines the riskiest 20% of accepted applicants.
+
+What this shows:
+
+- **The accepted-only model would approve over half of the applicants LendingClub rejected.** It treats them as only slightly riskier than accepted borrowers because it has never seen that part of the population.
+- **Plain fuzzy augmentation changes almost nothing.** The rejects are labelled by the baseline model itself, so it mostly learns its own opinion back. This is a known weakness of the method.
+- **Adding a realistic assumption about rejects changes the picture a lot** (55.8% approved down to 20.7%) while ranking quality on accepted loans barely moves (0.640 to 0.636).
+
+Rejected applicants never received loans, so there is no outcome data to prove which version is right. In practice a lender would settle the inflation factor using a small "test-and-learn" sample of approved borderline applicants. This analysis shows how sensitive approval decisions are to that choice.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
