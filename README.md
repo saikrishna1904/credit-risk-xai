@@ -25,6 +25,7 @@ The raw files are too large for GitHub. See [`data/README.md`](data/README.md) t
 | [`05_evaluation_threshold`](notebooks/05_evaluation_threshold.ipynb) | Model comparison, calibration, scoring function with low/medium/high risk bands |
 | [`06_fairness_accepted`](notebooks/06_fairness_accepted.ipynb) | Predicted default rates and disparate impact by purpose, home ownership, employment length and grade |
 | [`07_fairness_rejected`](notebooks/07_fairness_rejected.ipynb) | Scores a 300k sample of rejected applications |
+| [`08_monotonic_constraints`](notebooks/08_monotonic_constraints.ipynb) | Retrains XGBoost with monotonic constraints and checks that risk always moves in a defensible direction |
 
 Run them in order. Each one reads what the previous one saved.
 
@@ -63,6 +64,22 @@ Notebook 06 retrains the fixed pipeline (ROC AUC 0.727, matching notebook 03) an
 So the model is well calibrated within these groups. Renters get higher scores because renters in the data default more often, not because the model is overshooting for them.
 
 The disparate impact ratios at the default 0.5 threshold look severe (home ownership 0.32, employment length 0.64, purpose 0.17), but at that threshold the model flags only about 3% of loans, so the ratio compares very small rates and moves a lot with a handful of loans. Comparing average scores instead gives ratios of 0.77 for home ownership and 0.94 for employment length. Home ownership sits just under the 0.8 rule of thumb, so it is the attribute I would monitor if this model were used for real decisions.
+
+### Monotonic constraints
+
+A bank cannot defend a model where a higher interest rate or a lower income makes someone look *safer*. Gradient boosting can learn wiggles like that from noise, so in notebook 08 I retrained XGBoost with `monotone_constraints` on 22 features: higher interest rate, debt-to-income, utilisation and past delinquencies must never lower risk, and higher income, FICO score and share of accounts never delinquent must never raise it.
+
+To test this, I took 2,000 test applicants, made one feature half a standard deviation worse, and counted how often predicted risk went down:
+
+| | Unconstrained | Monotonic |
+|---|---|---|
+| ROC AUC | 0.727 | 0.726 |
+| PR AUC | 0.401 | 0.395 |
+| Applicants whose risk moved the wrong way (avg across features) | 11.8% | **0%** |
+| ...for interest rate specifically | 64.8% | **0%** |
+| ...for annual income | 14.7% | **0%** |
+
+The worst case was interest rate. The most likely reason is that interest rate and sub-grade carry almost the same information, so the unconstrained model took the main effect from sub-grade and learned noisy, often backwards patterns for interest rate within a grade. The constraints removed every wrong-direction prediction for a ROC AUC cost of 0.002, so I would use the monotonic model in practice.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
