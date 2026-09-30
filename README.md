@@ -27,6 +27,7 @@ The raw files are too large for GitHub. See [`data/README.md`](data/README.md) t
 | [`07_fairness_rejected`](notebooks/07_fairness_rejected.ipynb) | Scores a 300k sample of rejected applications |
 | [`08_monotonic_constraints`](notebooks/08_monotonic_constraints.ipynb) | Retrains XGBoost with monotonic constraints and checks that risk always moves in a defensible direction |
 | [`09_out_of_time_drift`](notebooks/09_out_of_time_drift.ipynb) | Trains on 2007–2015, tests on 2016, 2017 and 2018 separately, and measures drift with PSI |
+| [`10_counterfactuals`](notebooks/10_counterfactuals.ipynb) | Finds the smallest realistic changes that would get a declined applicant approved |
 
 Run them in order. Each one reads what the previous one saved.
 
@@ -108,6 +109,39 @@ I measured drift with the Population Stability Index (PSI) against the training 
 The overall score distribution stayed stable, but by 2018 interest rate and sub-grade had moved into the "watch" range as LendingClub's pricing changed. Score PSI alone would have missed this, which is why I track the key inputs as well as the output.
 
 The default rates also need care. Only finished loans (Fully Paid or Charged Off) are in the data, and most loans issued in 2017–2018 had not reached the end of their term by the end of 2018. The finished ones are mostly early payoffs and early defaults, which is why 2018 shows a lower default rate than 2016–2017. In a real deployment I would measure performance on a fixed window, for example defaults within 12 months of issue, so every year is judged the same way.
+
+### Counterfactual explanations: "what would get me approved?"
+
+SHAP explains why a score is high, but a declined customer mostly wants to know what they could change. In notebook 10 I set an example policy of declining the riskiest 20% of applicants (cut-off: 30.7% predicted default risk). On the test set, approved loans actually defaulted 14.8% of the time and declined loans 41.0%, so the cut-off separates risk well.
+
+For each declined applicant, the notebook searches for the smallest combination of three realistic actions that brings their risk under the cut-off, with each action capped at a 50% reduction:
+
+- **Reduce other debt** (debt-to-income)
+- **Pay down credit cards** (card balance and utilisation together)
+- **Borrow less** (loan amount and monthly payment together)
+
+Income, employment, credit history and the interest rate are never changed. Because the model is monotonic, reducing debt can never raise the predicted risk, so every suggestion points the right way.
+
+Examples from the test set:
+
+| Applicant | Risk before | Suggested change | Risk after |
+|---|---|---|---|
+| #30912 | 34.3% | Reduce debt-to-income by 20% | 30.4% (approved) |
+| #24444 | 32.4% | Borrow 20% less | 30.1% (approved) |
+| #27193 | 33.1% | Reduce debt-to-income by 10% and borrow 10% less | 29.6% (approved) |
+
+Across 500 declined applicants:
+
+| | |
+|---|---|
+| Could reach approval within the limits | 282 (56%) |
+| ...with one change | 61% of those |
+| ...with two or more | 39% of those |
+| Solutions that borrow less (typical cut 40%) | 72% |
+| Solutions that reduce other debt (typical cut 30%) | 58% |
+| Solutions that pay down cards (typical cut 10%) | 16% |
+
+The other 44% were too far above the cut-off for changes of this size, which is also useful to tell a customer honestly. These suggestions come from the model, not a guarantee of approval, and the actions are treated separately (for example, borrowing less would also slightly lower debt-to-income in reality, which the search does not model).
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
