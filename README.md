@@ -26,6 +26,7 @@ The raw files are too large for GitHub. See [`data/README.md`](data/README.md) t
 | [`06_fairness_accepted`](notebooks/06_fairness_accepted.ipynb) | Predicted default rates and disparate impact by purpose, home ownership, employment length and grade |
 | [`07_fairness_rejected`](notebooks/07_fairness_rejected.ipynb) | Scores a 300k sample of rejected applications |
 | [`08_monotonic_constraints`](notebooks/08_monotonic_constraints.ipynb) | Retrains XGBoost with monotonic constraints and checks that risk always moves in a defensible direction |
+| [`09_out_of_time_drift`](notebooks/09_out_of_time_drift.ipynb) | Trains on 2007–2015, tests on 2016, 2017 and 2018 separately, and measures drift with PSI |
 
 Run them in order. Each one reads what the previous one saved.
 
@@ -80,6 +81,33 @@ To test this, I took 2,000 test applicants, made one feature half a standard dev
 | ...for annual income | 14.7% | **0%** |
 
 The worst case was interest rate. The most likely reason is that interest rate and sub-grade carry almost the same information, so the unconstrained model took the main effect from sub-grade and learned noisy, often backwards patterns for interest rate within a grade. The constraints removed every wrong-direction prediction for a ROC AUC cost of 0.002, so I would use the monotonic model in practice.
+
+### Out-of-time testing and drift
+
+A random split mixes loans from every year, so the model is tested on the same era it learned from. A lender uses a model on future applicants, so in notebook 09 I trained the monotonic model on loans issued 2007–2015 (300k-loan sample) and tested each later year separately:
+
+| Evaluation | Loans | Default rate | ROC AUC | PR AUC |
+|---|---|---|---|---|
+| Random 80/20 split | 60,000 | 20.0% | 0.728 | 0.401 |
+| Out-of-time 2016 | 65,424 | 23.1% | 0.717 | 0.427 |
+| Out-of-time 2017 | 37,592 | 23.1% | 0.705 | 0.406 |
+| Out-of-time 2018 | 12,650 | 16.3% | 0.698 | 0.289 |
+
+ROC AUC falls a little each year the model gets further from its training data, from 0.728 on a random split to 0.698 two to three years later. The random split overstates how the model would perform in use.
+
+I measured drift with the Population Stability Index (PSI) against the training period (below 0.10 stable, 0.10–0.25 worth watching, above 0.25 review the model):
+
+| Variable | 2016 | 2017 | 2018 |
+|---|---|---|---|
+| Model score | 0.014 | 0.019 | 0.032 |
+| Interest rate | 0.082 | 0.097 | **0.147** |
+| Sub-grade (encoded) | 0.077 | 0.089 | **0.122** |
+| Average current balance | 0.059 | 0.069 | 0.097 |
+| Debt-to-income | 0.009 | 0.005 | 0.045 |
+
+The overall score distribution stayed stable, but by 2018 interest rate and sub-grade had moved into the "watch" range as LendingClub's pricing changed. Score PSI alone would have missed this, which is why I track the key inputs as well as the output.
+
+The default rates also need care. Only finished loans (Fully Paid or Charged Off) are in the data, and most loans issued in 2017–2018 had not reached the end of their term by the end of 2018. The finished ones are mostly early payoffs and early defaults, which is why 2018 shows a lower default rate than 2016–2017. In a real deployment I would measure performance on a fixed window, for example defaults within 12 months of issue, so every year is judged the same way.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
