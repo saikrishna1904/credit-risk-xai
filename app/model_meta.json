@@ -1,0 +1,130 @@
+{
+ "features": [
+  "loan_amnt",
+  "int_rate",
+  "installment",
+  "annual_inc",
+  "dti",
+  "fico_range_low",
+  "revol_util",
+  "revol_bal",
+  "open_acc",
+  "total_acc",
+  "inq_last_6mths",
+  "delinq_2yrs",
+  "pub_rec",
+  "mort_acc",
+  "term_code",
+  "grade_code",
+  "emp_length_code",
+  "home_ownership_code",
+  "verification_status_code",
+  "purpose_code"
+ ],
+ "numeric": [
+  "loan_amnt",
+  "int_rate",
+  "installment",
+  "annual_inc",
+  "dti",
+  "fico_range_low",
+  "revol_util",
+  "revol_bal",
+  "open_acc",
+  "total_acc",
+  "inq_last_6mths",
+  "delinq_2yrs",
+  "pub_rec",
+  "mort_acc"
+ ],
+ "categorical": [
+  "term",
+  "grade",
+  "emp_length",
+  "home_ownership",
+  "verification_status",
+  "purpose"
+ ],
+ "codes": {
+  "term": {
+   "36 months": 0,
+   "60 months": 1
+  },
+  "grade": {
+   "A": 0,
+   "B": 1,
+   "C": 2,
+   "D": 3,
+   "E": 4,
+   "F": 5,
+   "G": 6
+  },
+  "emp_length": {
+   "< 1 year": 0,
+   "1 year": 1,
+   "2 years": 2,
+   "3 years": 3,
+   "4 years": 4,
+   "5 years": 5,
+   "6 years": 6,
+   "7 years": 7,
+   "8 years": 8,
+   "9 years": 9,
+   "10+ years": 10
+  },
+  "home_ownership": {
+   "MORTGAGE": 0,
+   "RENT": 1,
+   "OWN": 2,
+   "ANY": 3
+  },
+  "verification_status": {
+   "Not Verified": 0,
+   "Source Verified": 1,
+   "Verified": 2
+  },
+  "purpose": {
+   "debt_consolidation": 0,
+   "credit_card": 1,
+   "home_improvement": 2,
+   "other": 3,
+   "major_purchase": 4,
+   "medical": 5,
+   "small_business": 6,
+   "car": 7,
+   "moving": 8,
+   "vacation": 9,
+   "house": 10,
+   "wedding": 11,
+   "renewable_energy": 12,
+   "educational": 13
+  }
+ },
+ "defaults": {
+  "loan_amnt": 12000.0,
+  "int_rate": 12.74,
+  "installment": 375.425,
+  "annual_inc": 65000.0,
+  "dti": 17.63,
+  "fico_range_low": 690.0,
+  "revol_util": 52.2,
+  "revol_bal": 11135.0,
+  "open_acc": 11.0,
+  "total_acc": 23.0,
+  "inq_last_6mths": 0.0,
+  "delinq_2yrs": 0.0,
+  "pub_rec": 0.0,
+  "mort_acc": 1.0,
+  "term": "36 months",
+  "grade": "B",
+  "emp_length": "10+ years",
+  "home_ownership": "MORTGAGE",
+  "verification_status": "Source Verified",
+  "purpose": "debt_consolidation"
+ },
+ "cutoff": 0.29820898175239563,
+ "test_roc_auc": 0.7149917592446655,
+ "test_pr_auc": 0.38166879877713383,
+ "train_rows": 204000,
+ "base_default_rate": 0.20005333333333333
+}
