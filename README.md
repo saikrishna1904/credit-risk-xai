@@ -2,7 +2,9 @@
 
 MSc Data Science dissertation project (York St John University).
 
-I built a model to predict whether a LendingClub loan will be charged off, then used SHAP and LIME to explain its decisions and checked how its predictions differ across groups of borrowers. The aim was a model that is accurate and also easy for a credit team to question.
+I built a model to predict whether a LendingClub loan will be charged off, then worked through the questions a credit team would ask before trusting it: is the accuracy real (I found and fixed target leakage), can every prediction be explained (SHAP, LIME), does it behave sensibly (monotonic constraints), is it fair across groups, will it hold up on future years (out-of-time testing and drift), what can a declined applicant do about it (counterfactuals), and what about the people who were never approved (reject inference).
+
+**[Try the live demo](https://sai-credit-risk.streamlit.app/)**: enter an applicant's details to see their predicted default risk, what drove it (SHAP), and the smallest realistic changes that would get them approved.
 
 ## Data
 
@@ -29,6 +31,7 @@ The raw files are too large for GitHub. See [`data/README.md`](data/README.md) t
 | [`09_out_of_time_drift`](notebooks/09_out_of_time_drift.ipynb) | Trains on 2007–2015, tests on 2016, 2017 and 2018 separately, and measures drift with PSI |
 | [`10_counterfactuals`](notebooks/10_counterfactuals.ipynb) | Finds the smallest realistic changes that would get a declined applicant approved |
 | [`11_reject_inference`](notebooks/11_reject_inference.ipynb) | Uses rejected applications to correct for the model only ever seeing approved loans |
+| [`12_app_model`](notebooks/12_app_model.ipynb) | Trains the compact model used by the Streamlit app in [`app/`](app/) |
 
 Run them in order. Each one reads what the previous one saved.
 
@@ -173,6 +176,16 @@ What this shows:
 - **Adding a realistic assumption about rejects changes the picture a lot** (55.8% approved down to 20.7%) while ranking quality on accepted loans barely moves (0.640 to 0.636).
 
 Rejected applicants never received loans, so there is no outcome data to prove which version is right. In practice a lender would settle the inflation factor using a small "test-and-learn" sample of approved borderline applicants. This analysis shows how sensitive approval decisions are to that choice.
+
+### Live app
+
+The [Streamlit app](https://sai-credit-risk.streamlit.app/) ([`app/app.py`](app/app.py)) puts the main ideas together in one page:
+
+- **Risk score and decision** against the same kind of cut-off as notebook 10 (declines the riskiest 20%).
+- **What drove the score**: the biggest SHAP contributions for that applicant, computed with XGBoost.
+- **Path to approval**: the smallest reductions in debt-to-income, card balances or loan amount that bring the applicant under the cut-off, plus how risk falls with each change on its own.
+
+The app runs on a free server without the 1.6 GB dataset, so it uses a compact monotonic XGBoost model (notebook 12) trained on the 20 fields a person can type in. It scores ROC AUC 0.715 on the test set, close to the full model's 0.727. With this model, approved applicants defaulted 15.0% of the time and declined applicants 39.9%. The model file is 1.1 MB.
 
 Plots are in [`outputs/`](outputs/) and summary tables in [`results/`](results/).
 
